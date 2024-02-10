@@ -79,7 +79,7 @@ function createTransacao(int $idCliente, Repository $repository): string {
     $result = $repository->createTransacao($idCliente, $valor, $descricao, $tipo);
 
     $saldo = $result['cliente_saldo'];
-    $limit = $result['cliente_limite'];
+    $limite = $result['cliente_limite'];
 
     if ($saldo === -1) {
         http_response_code(404);
