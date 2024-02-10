@@ -10,16 +10,9 @@ $handler = static function () use ($repository) {
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
 
-    $method = $_SERVER['REQUEST_METHOD'];
     $pathParts = explode('/', $_SERVER["REQUEST_URI"]);
-
-    if (!isValidRequest($pathParts, $method)) {
-        http_response_code(404);
-
-        return;
-    }
-
     $idCliente = (int)$pathParts[2];
+
     echo match ($pathParts[3]) {
         'transacoes' => createTransacao($idCliente, $repository),
         'extrato' => getExtrato($idCliente, $repository),
@@ -28,12 +21,6 @@ $handler = static function () use ($repository) {
 };
 
 function getExtrato(int $idCliente, Repository $repository): string {
-    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        http_response_code(405);
-
-        return '{}';
-    }
-
     $results = $repository->getExtrato($idCliente);
     if (count($results) === 0) {
         http_response_code(422);
@@ -85,7 +72,7 @@ function createTransacao(int $idCliente, Repository $repository): string {
     $limit = $result['cliente_limite'];
 
     if ($saldo === -1) {
-        http_response_code(422);
+        http_response_code(404);
 
         return "{\"mensagem\": \"Cliente com id $idCliente não encontrado.\"}";
     }
@@ -152,12 +139,6 @@ class Repository {
 
 function isValidTransacao(array $payload): bool
 {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-
-        return false;
-    }
-
     if (!isset($payload['valor']) || !isset($payload['tipo']) || !isset($payload['descricao'])) {
         http_response_code(422);
 
@@ -168,26 +149,6 @@ function isValidTransacao(array $payload): bool
     if ($lengthDescricao < 1 || $lengthDescricao > 10 || !in_array($payload['tipo'], ['c', 'd'])) {
         http_response_code(422);
 
-        return false;
-    }
-
-    return true;
-}
-
-function isValidRequest(array $pathParts, string $method): bool {
-    if (count($pathParts) !== 4 || $pathParts[1] !== 'clientes' || !ctype_digit($pathParts[2])) {
-        return false;
-    }
-
-    if ($method !== 'POST' && $method !== 'GET') {
-        return false;
-    }
-
-    if ($method === 'POST' && $pathParts[3] !== 'transacoes') {
-        return false;
-    }
-
-    if ($method === 'GET' && $pathParts[3] !== 'extrato') {
         return false;
     }
 
