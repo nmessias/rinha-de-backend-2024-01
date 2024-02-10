@@ -1,8 +1,7 @@
 CREATE UNLOGGED TABLE clientes (
     id INTEGER PRIMARY KEY NOT NULL,
     saldo INTEGER NOT NULL,
-    limite INTEGER NOT NULL,
-    CHECK (saldo >= limite * -1)
+    limite INTEGER NOT NULL
 );
 
 CREATE UNLOGGED TABLE transacoes (
@@ -18,22 +17,29 @@ CREATE INDEX ix_transacoes_id_cliente ON transacoes (
     id_cliente ASC
 );
 
-CREATE FUNCTION criar_transacao(id_cliente INTEGER, valor INTEGER, descricao VARCHAR(10), tipo CHAR(1))
+CREATE OR REPLACE FUNCTION criar_transacao(id_cliente INTEGER, valor INTEGER, descricao VARCHAR(10), tipo CHAR(1))
 RETURNS TABLE (cliente_saldo INTEGER, cliente_limite INTEGER) AS $$
-BEGIN
-  -- Check if cliente exists
-  IF NOT EXISTS (SELECT 1 FROM clientes WHERE id = id_cliente) THEN
-    RAISE EXCEPTION 'Cliente com id % não encontrado.', id_cliente;
-  END IF;
+declare 
+  cliente_data RECORD;
+begin
+	select * into cliente_data from clientes where id = id_cliente FOR UPDATE;
+	
+	if cliente_data is null then
+		return QUERY
+		select -1 AS cliente_saldo, -1 AS cliente_limite;
+	end if;
 
-  -- Insert transacao
-  INSERT INTO transacoes (valor, descricao, tipo, realizada_em, id_cliente)
-  VALUES (valor, descricao, tipo, NOW(), id_cliente);
+	if tipo = 'd' and cliente_data.saldo + valor < cliente_data.limite * -1 then
+		return QUERY
+		select -2 AS cliente_saldo, -2 AS cliente_limite;
+    else 
+        INSERT INTO transacoes (valor, descricao, tipo, realizada_em, id_cliente)
+        VALUES (valor, descricao, tipo, NOW(), id_cliente);
 
-  -- Update clientes.saldo and return values
-  RETURN QUERY
-  UPDATE clientes SET saldo = saldo + valor WHERE id = id_cliente
-  RETURNING saldo AS cliente_saldo, limite AS cliente_limite;
+        RETURN QUERY
+        UPDATE clientes SET saldo = saldo + valor WHERE id = id_cliente
+        RETURNING saldo AS cliente_saldo, limite AS cliente_limite;
+	end if;
 END;
 $$ LANGUAGE plpgsql;
 

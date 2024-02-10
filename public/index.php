@@ -3,10 +3,10 @@
 // Prevent worker script termination when a client connection is interrupted
 ignore_user_abort(true);
 
-$pdo = new \PDO('pgsql:host=db;port=5432;dbname=rinha', 'admin', '123',);
+$repository = new Repository();
 
 // Handler outside the loop for better performance (doing less work)
-$handler = static function () use ($pdo) {
+$handler = static function () use ($repository) {
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
 
@@ -22,37 +22,20 @@ $handler = static function () use ($pdo) {
 
     $idCliente = (int)$pathParts[2];
     echo match ($pathParts[3]) {
-        'transacoes' => createTransacao($idCliente, $pdo),
-        'extrato' => getExtrato($idCliente, $pdo),
+        'transacoes' => createTransacao($idCliente, $repository),
+        'extrato' => getExtrato($idCliente, $repository),
         default => http_response_code(404) ? '{}' : '{}',
     };
 };
 
-function getExtrato(int $idCliente, Pdo $pdo): string {
+function getExtrato(int $idCliente, Repository $repository): string {
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
         http_response_code(405);
 
         return '{}';
     }
 
-    $stmt = $pdo->prepare(
-        "SELECT 
-            c.saldo AS total,
-	        TO_CHAR(NOW(), 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS data_extrato,
-	        c.limite,
-            t.valor,
-            t.tipo,
-            t.descricao,
-            TO_CHAR(t.realizada_em, 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS realizada_em
-        FROM clientes c
-        LEFT JOIN transacoes t ON t.id_cliente = c.id	
-        WHERE c.id = :idCliente
-        ORDER BY t.id DESC
-        LIMIT 10;"
-    );
-
-    $stmt->execute([':idCliente' => $idCliente]);
-    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $results = $repository->getExtrato($idCliente);
     if (count($results) === 0) {
         http_response_code(404);
 
@@ -83,7 +66,7 @@ function getExtrato(int $idCliente, Pdo $pdo): string {
     ]);
 }
 
-function createTransacao(int $idCliente, Pdo $pdo): string {
+function createTransacao(int $idCliente, Repository $repository): string {
     $payload = json_decode(file_get_contents('php://input'), true);
     if (!isValidTransacao($payload)) {
         return '{}';
@@ -97,28 +80,73 @@ function createTransacao(int $idCliente, Pdo $pdo): string {
         $valor *= -1;
     }
 
-    $stmt = $pdo->prepare('SELECT * FROM criar_transacao(:idCliente, :valor, :descricao, :tipo)');
-    try {
-        if ($stmt->execute([':idCliente' => $idCliente, ':valor' => $valor, ':descricao' => $descricao, ':tipo' => $tipo])) {
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $result = $repository->criarTransacao($idCliente, $valor, $descricao, $tipo);
 
-            $stmt->closeCursor();
+    $saldo = $result['cliente_saldo'];
+    $limit = $result['cliente_limite'];
 
-            return json_encode(['saldo' => $result['cliente_saldo'], 'limite' => $result['cliente_limite']]);
-        }
-    } catch (PDOException $e) {
-        if ($e->errorInfo[0] === 'P0001') {
-            http_response_code(404);
+    if ($saldo === -1) {
+        http_response_code(404);
 
-            return "{\"mensagem\": \"Cliente com id $idCliente não encontrado.\"}";
-        } else {
-            http_response_code(422);
-
-            return '{"mensagem": "Limite não disponível."}';
-        }
+        return "{\"mensagem\": \"Cliente com id $idCliente não encontrado.\"}";
     }
-    
-    return '{}';
+        
+    if ($saldo === -2) {
+        http_response_code(422);
+
+        return '{"mensagem": "Limite não disponível."}';
+    }
+
+    return json_encode(['saldo' => $result['cliente_saldo'], 'limite' => $result['cliente_limite']]);
+}
+
+class Repository {
+    private Pdo $pdo;
+    private PDOStatement $extratoStmt;
+    private PDOStatement $transacaoStmt;
+
+    function __construct() {
+        $this->pdo = new PDO('pgsql:host=db;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
+        
+        $this->extratoStmt = $this->pdo->prepare(
+            "SELECT 
+                c.saldo AS total,
+                TO_CHAR(NOW(), 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS data_extrato,
+                c.limite,
+                t.valor,
+                t.tipo,
+                t.descricao,
+                TO_CHAR(t.realizada_em, 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS realizada_em
+            FROM clientes c
+            LEFT JOIN transacoes t ON t.id_cliente = c.id	
+            WHERE c.id = ?
+            ORDER BY t.id DESC
+            LIMIT 10;"
+        );
+
+        $this->transacaoStmt = $this->pdo->prepare('SELECT * FROM criar_transacao(?, ?, ?, ?)');
+    }
+
+    public function criarTransacao(int $idCliente, int $valor, string $descricao, string $tipo): array
+    {
+        $this->transacaoStmt->execute([$idCliente, $valor, $descricao, $tipo]);
+
+        return $this->transacaoStmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getExtrato(int $idCliente): array
+    {
+        $this->extratoStmt->execute([$idCliente]);
+
+        return $this->extratoStmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function close(): void
+    {
+        $this->transacaoStmt = null;
+        $this->extratoStmt = null;
+        $this->pdo = null;
+    }
 }
 
 function isValidTransacao(array $payload): bool
@@ -169,9 +197,11 @@ function isValidRequest(array $pathParts, string $method): bool {
     return true;
 }
 
-for($nbRequests = 0, $running = true; ($nbRequests < 200) && $running; ++$nbRequests) {
+for($nbRequests = 0, $running = true; $nbRequests < 2000 && $running; ++$nbRequests) {
     $running = \frankenphp_handle_request($handler);
 
     // Call the garbage collector to reduce the chances of it being triggered in the middle of a page generation
     gc_collect_cycles();
 }
+
+$repository->close();
