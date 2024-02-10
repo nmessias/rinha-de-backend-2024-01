@@ -23,7 +23,7 @@ $handler = static function () use ($repository) {
 function getExtrato(int $idCliente, Repository $repository): string {
     $results = $repository->getExtrato($idCliente);
     if (count($results) === 0) {
-        http_response_code(422);
+        http_response_code(404);
 
         return "{\"mensagem\": \"Cliente com id $idCliente não encontrado.\"}";
     }
@@ -146,7 +146,7 @@ function isValidTransacao(array $payload): bool
     }
 
     $lengthDescricao = strlen($payload['descricao']);
-    if ($lengthDescricao < 1 || $lengthDescricao > 10 || !in_array($payload['tipo'], ['c', 'd'])) {
+    if (!is_int($payload['valor']) || $lengthDescricao < 1 || $lengthDescricao > 10 || !in_array($payload['tipo'], ['c', 'd'])) {
         http_response_code(422);
 
         return false;
