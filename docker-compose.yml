@@ -11,7 +11,6 @@ services:
       - "5432:5432"
     volumes:
       - ./script.sql:/docker-entrypoint-initdb.d/script.sql
-    command: 'postgres -c max_connections=1000 -c shared_buffers=128MB -c synchronous_commit=off -c fsync=off -c full_page_writes=off'  
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d rinha -U admin"]
       interval: 3s
@@ -21,7 +20,7 @@ services:
       resources:
         limits:
           cpus: "0.7"
-          memory: "256MB"    
+          memory: "150MB"    
 
   app1: &app
     build: .
@@ -32,8 +31,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.3"
-          memory: "127MB"    
+          cpus: "0.32"
+          memory: "175MB"    
 
   app2:
     <<: *app
@@ -52,7 +51,7 @@ services:
       resources:
         limits:
           cpus: "0.2"
-          memory: "40MB"  
+          memory: "50MB"  
 
 networks:
   default:
