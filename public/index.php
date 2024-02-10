@@ -54,7 +54,10 @@ function getExtrato(int $idCliente, Repository $repository): string {
 
 function createTransacao(int $idCliente, Repository $repository): string {
     $payload = json_decode(file_get_contents('php://input'), true);
-    if (!isValidTransacao($payload)) {
+
+    if (!isset($payload['valor']) || !isset($payload['tipo']) || !isset($payload['descricao'])) {
+        http_response_code(422);
+
         return '{}';
     }
 
@@ -62,11 +65,18 @@ function createTransacao(int $idCliente, Repository $repository): string {
     $valor = $payload['valor'];
     $descricao = $payload['descricao'];
 
+    $lengthDescricao = strlen($descricao);
+    if (!is_int($valor) || $lengthDescricao < 1 || $lengthDescricao > 10 || !in_array($tipo, ['c', 'd'])) {
+        http_response_code(422);
+        
+        return '{}';
+    }
+
     if ($tipo === 'd') {
         $valor *= -1;
     }
 
-    $result = $repository->criarTransacao($idCliente, $valor, $descricao, $tipo);
+    $result = $repository->createTransacao($idCliente, $valor, $descricao, $tipo);
 
     $saldo = $result['cliente_saldo'];
     $limit = $result['cliente_limite'];
@@ -83,7 +93,7 @@ function createTransacao(int $idCliente, Repository $repository): string {
         return '{"mensagem": "Limite não disponível."}';
     }
 
-    return json_encode(['saldo' => $result['cliente_saldo'], 'limite' => $result['cliente_limite']]);
+    return json_encode(['saldo' => $saldo, 'limite' => $limite]);
 }
 
 class Repository {
@@ -113,10 +123,11 @@ class Repository {
         $this->transacaoStmt = $this->pdo->prepare('SELECT * FROM criar_transacao(?, ?, ?, ?)');
     }
 
-    public function criarTransacao(int $idCliente, int $valor, string $descricao, string $tipo): array
+    public function createTransacao(int $idCliente, int $valor, string $descricao, string $tipo): array
     {
         $this->transacaoStmt->execute([$idCliente, $valor, $descricao, $tipo]);
         $result = $this->transacaoStmt->fetch(PDO::FETCH_ASSOC);
+        
         $this->transacaoStmt->closeCursor();
 
         return $result;
@@ -137,29 +148,9 @@ class Repository {
     }
 }
 
-function isValidTransacao(array $payload): bool
-{
-    if (!isset($payload['valor']) || !isset($payload['tipo']) || !isset($payload['descricao'])) {
-        http_response_code(422);
-
-        return false;
-    }
-
-    $lengthDescricao = strlen($payload['descricao']);
-    if (!is_int($payload['valor']) || $lengthDescricao < 1 || $lengthDescricao > 10 || !in_array($payload['tipo'], ['c', 'd'])) {
-        http_response_code(422);
-
-        return false;
-    }
-
-    return true;
-}
-
-for($nbRequests = 0, $running = true; $nbRequests < 2000 && $running; ++$nbRequests) {
-    $running = \frankenphp_handle_request($handler);
+while(true) {
+    \frankenphp_handle_request($handler);
 
     // Call the garbage collector to reduce the chances of it being triggered in the middle of a page generation
     gc_collect_cycles();
 }
-
-$repository->close();
