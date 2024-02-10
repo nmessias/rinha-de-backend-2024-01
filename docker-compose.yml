@@ -31,7 +31,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.32"
+          cpus: "0.3"
           memory: "175MB"    
 
   app2:

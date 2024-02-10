@@ -10,9 +10,8 @@ $handler = static function () use ($repository) {
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
 
-    $path = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
     $method = $_SERVER['REQUEST_METHOD'];
-    $pathParts = explode('/', $path);
+    $pathParts = explode('/', $_SERVER["REQUEST_URI"]);
 
     if (!isValidRequest($pathParts, $method)) {
         http_response_code(404);
@@ -37,7 +36,7 @@ function getExtrato(int $idCliente, Repository $repository): string {
 
     $results = $repository->getExtrato($idCliente);
     if (count($results) === 0) {
-        http_response_code(404);
+        http_response_code(422);
 
         return "{\"mensagem\": \"Cliente com id $idCliente não encontrado.\"}";
     }
