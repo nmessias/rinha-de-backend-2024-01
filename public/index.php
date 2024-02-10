@@ -73,7 +73,7 @@ function createTransacao(int $idCliente, Repository $repository): string {
     }
 
     $tipo = $payload['tipo'];
-    $valor = (int)$payload['valor'];
+    $valor = $payload['valor'];
     $descricao = $payload['descricao'];
 
     if ($tipo === 'd') {
@@ -86,7 +86,7 @@ function createTransacao(int $idCliente, Repository $repository): string {
     $limit = $result['cliente_limite'];
 
     if ($saldo === -1) {
-        http_response_code(404);
+        http_response_code(422);
 
         return "{\"mensagem\": \"Cliente com id $idCliente não encontrado.\"}";
     }
@@ -130,8 +130,10 @@ class Repository {
     public function criarTransacao(int $idCliente, int $valor, string $descricao, string $tipo): array
     {
         $this->transacaoStmt->execute([$idCliente, $valor, $descricao, $tipo]);
+        $result = $this->transacaoStmt->fetch(PDO::FETCH_ASSOC);
+        $this->transacaoStmt->closeCursor();
 
-        return $this->transacaoStmt->fetch(PDO::FETCH_ASSOC);
+        return $result;
     }
 
     public function getExtrato(int $idCliente): array
@@ -175,22 +177,18 @@ function isValidTransacao(array $payload): bool
 
 function isValidRequest(array $pathParts, string $method): bool {
     if (count($pathParts) !== 4 || $pathParts[1] !== 'clientes' || !ctype_digit($pathParts[2])) {
-
         return false;
     }
 
     if ($method !== 'POST' && $method !== 'GET') {
-
         return false;
     }
 
     if ($method === 'POST' && $pathParts[3] !== 'transacoes') {
-
         return false;
     }
 
     if ($method === 'GET' && $pathParts[3] !== 'extrato') {
-
         return false;
     }
 
