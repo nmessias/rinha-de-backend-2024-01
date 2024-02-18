@@ -21,12 +21,12 @@ function getExtrato(int $idCliente, Pdo $pdo): string {
     $results = $pdo->query(
             "SELECT 
                 c.saldo AS total,
-                TO_CHAR(NOW(), 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS data_extrato,
+                NOW() AS data_extrato,
                 c.limite,
                 t.valor,
                 t.tipo,
                 t.descricao,
-                TO_CHAR(t.realizada_em, 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS realizada_em
+                t.realizada_em AS realizada_em
             FROM clientes c
             LEFT JOIN transacoes t ON t.id_cliente = c.id	
             WHERE c.id = $idCliente
@@ -87,9 +87,6 @@ function createTransacao(int $idCliente, Pdo $pdo): string {
     $response = $pdo->query("SELECT * FROM criar_transacao($idCliente, $valor, '$descricao', '$tipo')")->fetch(PDO::FETCH_ASSOC);
 
     $resultado = $response['resultado'];
-    $saldo = $response['saldo'];
-    $limite = $response['limite'];
-
     if ($resultado === -1) {
         http_response_code(404);
 
@@ -101,6 +98,9 @@ function createTransacao(int $idCliente, Pdo $pdo): string {
 
         return '';
     }
+
+    $saldo = $response['saldo'];
+    $limite = $response['limite'];
 
     return "{\"saldo\": $saldo, \"limite\": $limite}";
 }
