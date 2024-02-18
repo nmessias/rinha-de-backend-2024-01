@@ -22,8 +22,10 @@ services:
           memory: "150MB"    
 
   app1: &app
-    build: .
-    hostname: app1
+    build:
+      context: .
+      args:
+      - HTTP_PORT=3000
     network_mode: host
     depends_on:
       db:
@@ -36,7 +38,10 @@ services:
 
   app2:
     <<: *app
-    hostname: app2  
+    build:
+      context: .
+      args:
+      - HTTP_PORT=3001
 
   nginx:
     image: nginx:latest
