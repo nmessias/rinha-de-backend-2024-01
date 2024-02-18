@@ -25,7 +25,7 @@ function getExtrato(int $idCliente, Pdo $pdo): string {
     }
 
     $transacoes = $pdo
-        ->query("SELECT limite, valor, tipo, descricao FROM transacoes WHERE id_cliente = $idCliente ORDER BY id DESC LIMIT 10;")
+        ->query("SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = $idCliente ORDER BY id DESC LIMIT 10;")
         ->fetchAll(PDO::FETCH_ASSOC);
 
     return json_encode([
