@@ -3,12 +3,11 @@ version: '3'
 services:
   db:
     image: postgres:latest
+    network_mode: host
     environment:
       - POSTGRES_PASSWORD=123
       - POSTGRES_USER=admin
       - POSTGRES_DB=rinha
-    ports:
-      - "5432:5432"
     volumes:
       - ./script.sql:/docker-entrypoint-initdb.d/script.sql
     healthcheck:
@@ -25,6 +24,7 @@ services:
   app1: &app
     build: .
     hostname: app1
+    network_mode: host
     depends_on:
       db:
         condition: service_healthy
@@ -40,20 +40,14 @@ services:
 
   nginx:
     image: nginx:latest
+    network_mode: host
     volumes:
       - ./default.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - app1
       - app2
-    ports:
-      - "9999:9999"
     deploy:
       resources:
         limits:
           cpus: "0.2"
-          memory: "50MB"  
-
-networks:
-  default:
-    driver: host
-    name: rinha-nginx-2024q1              
+          memory: "50MB"
