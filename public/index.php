@@ -84,7 +84,7 @@ function createTransacao(int $idCliente, Pdo $pdo): string {
         return '';
     }
 
-    $response = $pdo->query("SELECT * FROM criar_transacao($idCliente, $valor, $descricao, $tipo)")->fetch(PDO::FETCH_ASSOC);
+    $response = $pdo->query("SELECT * FROM criar_transacao($idCliente, $valor, '$descricao', '$tipo')")->fetch(PDO::FETCH_ASSOC);
 
     $resultado = $response['resultado'];
     $saldo = $response['saldo'];
