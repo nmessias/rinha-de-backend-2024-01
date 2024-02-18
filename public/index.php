@@ -2,7 +2,6 @@
 
 $pdo = new PDO('pgsql:host=127.0.0.1;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
 
-// Handler outside the loop for better performance (doing less work)
 $handler = static function () use ($pdo) {
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
@@ -18,45 +17,16 @@ $handler = static function () use ($pdo) {
 };
 
 function getExtrato(int $idCliente, Pdo $pdo): string {
-    $results = $pdo->query(
-            "SELECT 
-                c.saldo AS total,
-                NOW() AS data_extrato,
-                c.limite,
-                t.valor,
-                t.tipo,
-                t.descricao,
-                t.realizada_em AS realizada_em
-            FROM clientes c
-            LEFT JOIN transacoes t ON t.id_cliente = c.id	
-            WHERE c.id = $idCliente
-            ORDER BY t.id DESC
-            LIMIT 10;"
-        )->fetchAll(PDO::FETCH_ASSOC);
-
-    if (count($results) === 0) {
+    $saldo = $pdo->query("SELECT saldo AS total, NOW() AS data_extrato, limite, ROM clientes;")->fetch(PDO::FETCH_ASSOC);
+    if ($saldo === null) {
         http_response_code(404);
 
         return "";
     }
 
-    $saldo = [
-        'total' => $results[0]['total'],
-        'data_extrato' => $results[0]['data_extrato'],
-        'limite' => $results[0]['limite'],
-    ];
-
-    $transacoes = [];
-    if ($results[0]['valor'] !== null) {
-        foreach ($results as $transacao) {
-            $transacoes[] = [
-                'valor' => $transacao['valor'] < 0 ? $transacao['valor'] * -1 : $transacao['valor'],
-                'tipo' => $transacao['tipo'],
-                'descricao' => $transacao['descricao'],
-                'realizada_em' => $transacao['realizada_em'],
-            ];
-        }
-    }
+    $transacoes = $pdo
+        ->query("SELECT limite, valor, tipo, descricao, FROM transacoes WHERE id_cliente = $idCliente ORDER BY id DESC LIMIT 10;")
+        ->fetchAll(PDO::FETCH_ASSOC);
 
     return json_encode([
         'saldo' => $saldo,
