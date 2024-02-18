@@ -6,7 +6,7 @@ WORKDIR /app
 RUN set -eux; \
 	install-php-extensions \
 		opcache \
-		pdo pdo_pgsql \
+		pdo_pgsql \
 	;
 
 ENV APP_ENV=prod
