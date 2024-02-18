@@ -3,11 +3,7 @@ FROM dunglas/frankenphp
 ARG HTTP_PORT
 WORKDIR /app
 
-RUN set -eux; \
-	install-php-extensions \
-		opcache \
-		pdo_pgsql \
-	;
+RUN install-php-extensions pdo_pgsql;
 
 ENV APP_ENV=prod
 ENV SERVER_NAME=:${HTTP_PORT}

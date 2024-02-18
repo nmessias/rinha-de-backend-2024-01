@@ -1,12 +1,9 @@
 <?php
 
-// Prevent worker script termination when a client connection is interrupted
-ignore_user_abort(true);
-
-$repository = new Repository();
+$pdo = new PDO('pgsql:host=127.0.0.1;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
 
 // Handler outside the loop for better performance (doing less work)
-$handler = static function () use ($repository) {
+$handler = static function () use ($pdo) {
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
 
@@ -14,14 +11,29 @@ $handler = static function () use ($repository) {
     $idCliente = (int)$pathParts[2];
 
     echo match ($pathParts[3]) {
-        'transacoes' => createTransacao($idCliente, $repository),
-        'extrato' => getExtrato($idCliente, $repository),
+        'transacoes' => createTransacao($idCliente, $pdo),
+        'extrato' => getExtrato($idCliente, $pdo),
         default => http_response_code(404) ? '' : '',
     };
 };
 
-function getExtrato(int $idCliente, Repository $repository): string {
-    $results = $repository->getExtrato($idCliente);
+function getExtrato(int $idCliente, Pdo $pdo): string {
+    $results = $pdo->query(
+            "SELECT 
+                c.saldo AS total,
+                TO_CHAR(NOW(), 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS data_extrato,
+                c.limite,
+                t.valor,
+                t.tipo,
+                t.descricao,
+                TO_CHAR(t.realizada_em, 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS realizada_em
+            FROM clientes c
+            LEFT JOIN transacoes t ON t.id_cliente = c.id	
+            WHERE c.id = $idCliente
+            ORDER BY t.id DESC
+            LIMIT 10;"
+        )->fetchAll(PDO::FETCH_ASSOC);
+
     if (count($results) === 0) {
         http_response_code(404);
 
@@ -52,7 +64,7 @@ function getExtrato(int $idCliente, Repository $repository): string {
     ]);
 }
 
-function createTransacao(int $idCliente, Repository $repository): string {
+function createTransacao(int $idCliente, Pdo $pdo): string {
     $payload = json_decode(file_get_contents('php://input'), true);
 
     if (!isset($payload['valor']) || !isset($payload['tipo']) || !isset($payload['descricao'])) {
@@ -72,7 +84,7 @@ function createTransacao(int $idCliente, Repository $repository): string {
         return '';
     }
 
-    $response = $repository->createTransacao($idCliente, $valor, $descricao, $tipo);
+    $response = $pdo->query("SELECT * FROM criar_transacao($idCliente, $valor, $descricao, $tipo)")->fetch(PDO::FETCH_ASSOC);
 
     $resultado = $response['resultado'];
     $saldo = $response['saldo'];
@@ -91,51 +103,6 @@ function createTransacao(int $idCliente, Repository $repository): string {
     }
 
     return "{\"saldo\": $saldo, \"limite\": $limite}";
-}
-
-class Repository {
-    private Pdo $pdo;
-    private PDOStatement $extratoStmt;
-    private PDOStatement $transacaoStmt;
-
-    function __construct() {
-        $this->pdo = new PDO('pgsql:host=127.0.0.1;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
-        
-        $this->extratoStmt = $this->pdo->prepare(
-            "SELECT 
-                c.saldo AS total,
-                TO_CHAR(NOW(), 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS data_extrato,
-                c.limite,
-                t.valor,
-                t.tipo,
-                t.descricao,
-                TO_CHAR(t.realizada_em, 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS realizada_em
-            FROM clientes c
-            LEFT JOIN transacoes t ON t.id_cliente = c.id	
-            WHERE c.id = ?
-            ORDER BY t.id DESC
-            LIMIT 10;"
-        );
-
-        $this->transacaoStmt = $this->pdo->prepare('SELECT * FROM criar_transacao(?, ?, ?, ?)');
-    }
-
-    public function createTransacao(int $idCliente, int $valor, string $descricao, string $tipo): array
-    {
-        $this->transacaoStmt->execute([$idCliente, $valor, $descricao, $tipo]);
-        $result = $this->transacaoStmt->fetch(PDO::FETCH_ASSOC);
-        
-        $this->transacaoStmt->closeCursor();
-
-        return $result;
-    }
-
-    public function getExtrato(int $idCliente): array
-    {
-        $this->extratoStmt->execute([$idCliente]);
-
-        return $this->extratoStmt->fetchAll(PDO::FETCH_ASSOC);
-    }
 }
 
 while(true) {
