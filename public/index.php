@@ -96,7 +96,7 @@ class Repository {
     private PDOStatement $transacaoStmt;
 
     function __construct() {
-        $this->pdo = new PDO('pgsql:host=db;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
+        $this->pdo = new PDO('pgsql:host=127.0.0.1;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
         
         $this->extratoStmt = $this->pdo->prepare(
             "SELECT 
