@@ -3,31 +3,29 @@
 // Prevent worker script termination when a client connection is interrupted
 ignore_user_abort(true);
 
-$pool = new DatabasePool();
+$repository = new Repository();
 
 // Handler outside the loop for better performance (doing less work)
-$handler = static function () use ($pool) {
+$handler = static function () use ($repository) {
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
 
     $pathParts = explode('/', $_SERVER["REQUEST_URI"]);
     $idCliente = (int)$pathParts[2];
 
-    $connection = $pool->getConnection();
-
     echo match ($pathParts[3]) {
-        'transacoes' => createTransacao($idCliente, $connection),
-        'extrato' => getExtrato($idCliente, $connection),
+        'transacoes' => createTransacao($idCliente, $repository),
+        'extrato' => getExtrato($idCliente, $repository),
         default => http_response_code(404) ? '' : '',
     };
 };
 
-function getExtrato(int $idCliente, DatabaseConnection $connection): string {
-    $results = $connection->getExtrato($idCliente);
+function getExtrato(int $idCliente, Repository $repository): string {
+    $results = $repository->getExtrato($idCliente);
     if (count($results) === 0) {
         http_response_code(404);
 
-        return '';
+        return "{\"mensagem\": \"Cliente com id $idCliente não encontrado.\"}";
     }
 
     $saldo = [
@@ -40,7 +38,7 @@ function getExtrato(int $idCliente, DatabaseConnection $connection): string {
     if ($results[0]['valor'] !== null) {
         foreach ($results as $transacao) {
             $transacoes[] = [
-                'valor' => $transacao['valor'],
+                'valor' => $transacao['valor'] < 0 ? $transacao['valor'] * -1 : $transacao['valor'],
                 'tipo' => $transacao['tipo'],
                 'descricao' => $transacao['descricao'],
                 'realizada_em' => $transacao['realizada_em'],
@@ -54,7 +52,7 @@ function getExtrato(int $idCliente, DatabaseConnection $connection): string {
     ]);
 }
 
-function createTransacao(int $idCliente, DatabaseConnection $connection): string {
+function createTransacao(int $idCliente, Repository $repository): string {
     $payload = json_decode(file_get_contents('php://input'), true);
 
     if (!isset($payload['valor']) || !isset($payload['tipo']) || !isset($payload['descricao'])) {
@@ -74,7 +72,7 @@ function createTransacao(int $idCliente, DatabaseConnection $connection): string
         return '';
     }
 
-    $response = $connection->createTransacao($idCliente, $valor, $descricao, $tipo);
+    $response = $repository->createTransacao($idCliente, $valor, $descricao, $tipo);
 
     $result = $response['resultado'];
     if ($result === -1) {
@@ -92,28 +90,7 @@ function createTransacao(int $idCliente, DatabaseConnection $connection): string
     return json_encode(['saldo' => $response['cliente_saldo'], 'limite' => $response['cliente_limite']]);
 }
 
-class DatabasePool {
-    private array $connections = [];
-    private int $maxConnections = 15;
-    private int $counter = 0;
-
-    public function getConnection(): DatabaseConnection
-    {
-        $this->counter = ($this->counter + 1) % $this->maxConnections;
-        if (count($this->connections) < $this->maxConnections) {
-            $connection = new DatabaseConnection();
-
-            $this->connections[] = $connection;
-            
-            return $connection;
-        }
-
-
-        return $this->connections[$this->counter];
-    }
-}
-
-class DatabaseConnection {
+class Repository {
     private Pdo $pdo;
     private PDOStatement $extratoStmt;
     private PDOStatement $transacaoStmt;
@@ -161,5 +138,6 @@ class DatabaseConnection {
 while(true) {
     \frankenphp_handle_request($handler);
 
+    // Call the garbage collector to reduce the chances of it being triggered in the middle of a page generation
     gc_collect_cycles();
 }
