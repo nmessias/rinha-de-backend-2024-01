@@ -17,36 +17,46 @@ CREATE INDEX ix_transacoes_id_cliente ON transacoes (
     id_cliente ASC
 );
 
+CREATE TYPE criar_transacao_result AS (
+  resultado integer,
+  saldo integer,
+  limite integer
+);
+
 CREATE OR REPLACE FUNCTION criar_transacao(id_cliente INTEGER, valor INTEGER, descricao VARCHAR(10), tipo CHAR(1))
-RETURNS TABLE (resultado INTEGER, cliente_saldo INTEGER, cliente_limite INTEGER) AS $$
-declare 
+RETURNS criar_transacao_result AS $$
+DECLARE 
   cliente_data RECORD;
+  ret criar_transacao_result;
+  update_client_result RECORD;
   copy_valor INTEGER;
-begin
-	select * into cliente_data from clientes where id = id_cliente FOR UPDATE;
+BEGIN
+	SELECT * INTO cliente_data FROM clientes WHERE id = id_cliente FOR UPDATE;
 	
-	if cliente_data is null then
-		return QUERY
-		select -1 AS result, -1 AS cliente_saldo, -1 AS cliente_limite;
-	end if;
+	IF cliente_data IS NULL THEN
+		SELECT -1, -1, -1 INTO ret;
+    RETURN ret;
+	END IF;
 
-  if tipo = 'd' then
+  IF tipo = 'd' THEN
     copy_valor := valor * -1;
-  else
+  ELSE
     copy_valor := valor;
-  end if;
+  END IF;
 
-	if cliente_data.saldo + copy_valor < cliente_data.limite * -1 then
-		return QUERY
-		select -2 AS resultado,  -2 AS cliente_saldo, -2 AS cliente_limite;
-  else 
+  UPDATE clientes SET saldo = saldo + copy_valor WHERE id = id_cliente AND (copy_valor > 0 OR saldo + copy_valor >= limite * -1)
+    RETURNING saldo, limite INTO update_client_result;
+    
+  IF update_client_result.saldo IS NULL THEN 
+		SELECT -2, -2, -2 INTO ret;
+  ELSE
     INSERT INTO transacoes (valor, descricao, tipo, realizada_em, id_cliente)
-      VALUES (valor, descricao, tipo, NOW(), id_cliente);
+    VALUES (valor, descricao, tipo, NOW(), id_cliente);
 
-    RETURN QUERY
-    UPDATE clientes SET saldo = saldo + copy_valor WHERE id = id_cliente
-      RETURNING 0 as resultado, saldo AS cliente_saldo, limite AS cliente_limite;
-	end if;
+    SELECT 0 AS resultado, update_client_result.saldo, update_client_result.limite INTO ret;
+  END IF;
+
+  RETURN ret;  
 END;
 $$ LANGUAGE plpgsql;
 

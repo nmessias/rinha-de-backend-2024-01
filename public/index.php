@@ -25,7 +25,7 @@ function getExtrato(int $idCliente, Repository $repository): string {
     if (count($results) === 0) {
         http_response_code(404);
 
-        return "{\"mensagem\": \"Cliente com id $idCliente não encontrado.\"}";
+        return "";
     }
 
     $saldo = [
@@ -74,20 +74,23 @@ function createTransacao(int $idCliente, Repository $repository): string {
 
     $response = $repository->createTransacao($idCliente, $valor, $descricao, $tipo);
 
-    $result = $response['resultado'];
-    if ($result === -1) {
+    $resultado = $response['resultado'];
+    $saldo = $response['saldo'];
+    $limite = $response['limite'];
+
+    if ($resultado === -1) {
         http_response_code(404);
 
         return '';
     }
         
-    if ($result === -2) {
+    if ($resultado === -2) {
         http_response_code(422);
 
         return '';
     }
 
-    return json_encode(['saldo' => $response['cliente_saldo'], 'limite' => $response['cliente_limite']]);
+    return "{\"saldo\": $saldo, \"limite\": $limite}";
 }
 
 class Repository {
