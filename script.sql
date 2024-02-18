@@ -27,15 +27,15 @@ CREATE OR REPLACE FUNCTION criar_transacao(id_cliente INTEGER, valor INTEGER, de
 RETURNS criar_transacao_result AS $$
 DECLARE 
   cliente_data RECORD;
-  ret criar_transacao_result;
+  result criar_transacao_result;
   update_client_result RECORD;
   copy_valor INTEGER;
 BEGIN
-	SELECT * INTO cliente_data FROM clientes WHERE id = id_cliente FOR UPDATE;
+	SELECT * INTO cliente_data FROM clientes WHERE id = id_cliente;
 	
 	IF cliente_data IS NULL THEN
-		SELECT -1, -1, -1 INTO ret;
-    RETURN ret;
+		SELECT -1, -1, -1 INTO result;
+    RETURN result;
 	END IF;
 
   IF tipo = 'd' THEN
@@ -48,15 +48,15 @@ BEGIN
     RETURNING saldo, limite INTO update_client_result;
     
   IF update_client_result.saldo IS NULL THEN 
-		SELECT -2, -2, -2 INTO ret;
+		SELECT -2, -2, -2 INTO result;
   ELSE
     INSERT INTO transacoes (valor, descricao, tipo, realizada_em, id_cliente)
     VALUES (valor, descricao, tipo, NOW(), id_cliente);
 
-    SELECT 0 AS resultado, update_client_result.saldo, update_client_result.limite INTO ret;
+    SELECT 0 AS resultado, update_client_result.saldo, update_client_result.limite INTO result;
   END IF;
 
-  RETURN ret;  
+  RETURN result;  
 END;
 $$ LANGUAGE plpgsql;
 
