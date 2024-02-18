@@ -16,7 +16,7 @@ $handler = static function () use ($repository) {
     echo match ($pathParts[3]) {
         'transacoes' => createTransacao($idCliente, $repository),
         'extrato' => getExtrato($idCliente, $repository),
-        default => http_response_code(404) ? '{}' : '{}',
+        default => http_response_code(404) ? '' : '',
     };
 };
 
@@ -58,7 +58,7 @@ function createTransacao(int $idCliente, Repository $repository): string {
     if (!isset($payload['valor']) || !isset($payload['tipo']) || !isset($payload['descricao'])) {
         http_response_code(422);
 
-        return '{}';
+        return '';
     }
 
     $tipo = $payload['tipo'];
@@ -69,31 +69,25 @@ function createTransacao(int $idCliente, Repository $repository): string {
     if (!is_int($valor) || $lengthDescricao < 1 || $lengthDescricao > 10 || !in_array($tipo, ['c', 'd'])) {
         http_response_code(422);
         
-        return '{}';
+        return '';
     }
 
-    if ($tipo === 'd') {
-        $valor *= -1;
-    }
+    $response = $repository->createTransacao($idCliente, $valor, $descricao, $tipo);
 
-    $result = $repository->createTransacao($idCliente, $valor, $descricao, $tipo);
-
-    $saldo = $result['cliente_saldo'];
-    $limite = $result['cliente_limite'];
-
-    if ($saldo === -1) {
+    $result = $response['resultado'];
+    if ($result === -1) {
         http_response_code(404);
 
-        return "{\"mensagem\": \"Cliente com id $idCliente não encontrado.\"}";
+        return '';
     }
         
-    if ($saldo === -2) {
+    if ($result === -2) {
         http_response_code(422);
 
-        return '{"mensagem": "Limite não disponível."}';
+        return '';
     }
 
-    return json_encode(['saldo' => $saldo, 'limite' => $limite]);
+    return json_encode(['saldo' => $response['cliente_saldo'], 'limite' => $response['cliente_limite']]);
 }
 
 class Repository {
@@ -138,13 +132,6 @@ class Repository {
         $this->extratoStmt->execute([$idCliente]);
 
         return $this->extratoStmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function close(): void
-    {
-        $this->transacaoStmt = null;
-        $this->extratoStmt = null;
-        $this->pdo = null;
     }
 }
 
