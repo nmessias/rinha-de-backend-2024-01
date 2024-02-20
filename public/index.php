@@ -21,16 +21,16 @@ function getExtrato(int $idCliente, Pdo $pdo): string {
         ->query("SELECT saldo as total, now() as data_extrato, limite, valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = $idCliente ORDER BY id DESC LIMIT 10;")
         ->fetchAll(PDO::FETCH_ASSOC);
 
-    if (count(result) === 0) {
+    if (count($result) === 0) {
         http_response_code(404);
 
         return '';
     }
 
     $saldo = [
-        'total' => $result[0]['total'];
-        'data_extrato' => $result[0]['data_extrato'];
-        'limite' => $result[0]['limite'];
+        'total' => $result[0]['total'],
+        'data_extrato' => $result[0]['data_extrato'],
+        'limite' => $result[0]['limite'],
     ];
 
     $transacoes = [];
