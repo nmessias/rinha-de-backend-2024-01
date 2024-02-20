@@ -39,7 +39,7 @@ BEGIN
     copy_valor := valor;
   END IF;
 
-  IF copy_valor <= 0 AND current_data.saldo + copy_valor < current_data.limite * -1 THEN
+  IF copy_valor < 0 AND current_data.saldo + copy_valor < current_data.limite * -1 THEN
     SELECT -2, -2, -2 INTO result;
   ELSE
       INSERT INTO transacoes (saldo, limite, valor, descricao, tipo, realizada_em, id_cliente)
@@ -61,3 +61,6 @@ BEGIN
     (4, 0, 100000 * 100, 0, '', 'c', now()),
     (5, 0, 5000 * 100, 0, '', 'c', now());
 END; $$
+
+CREATE EXTENSION pg_prewarm;
+SELECT pg_prewarm('transacoes');

@@ -5,7 +5,7 @@ $saldoStmt = $pdo->prepare('SELECT saldo AS total, NOW() AS data_extrato, limite
 $transacoesStmt = $pdo->prepare('SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = ? ORDER BY id DESC LIMIT 10;');
 $criarTransacaoStmt = $pdo->prepare('SELECT * FROM criar_transacao(?, ?, ?, ?);');
 
-$handler = static function () use ($pdo, $saldoStmt, $transacoesStmt, $criarTransacaoStmt) {
+$handler = static function () use ($saldoStmt, $transacoesStmt, $criarTransacaoStmt) {
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
 
