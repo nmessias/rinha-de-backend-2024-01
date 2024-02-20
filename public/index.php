@@ -17,18 +17,31 @@ $handler = static function () use ($pdo) {
 };
 
 function getExtrato(int $idCliente, Pdo $pdo): string {
-    $saldo = $pdo
-        ->query("SELECT saldo AS total, NOW() AS data_extrato, limite FROM transacoes where id_cliente = $idCliente ORDER BY id DESC LIMIT 1;")
-        ->fetch(PDO::FETCH_ASSOC);
-    if (!$saldo) {
+    $result = $pdo
+        ->query("SELECT saldo as total, now() as data_extrato, limite, valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = $idCliente ORDER BY id DESC LIMIT 10;")
+        ->fetchAll(PDO::FETCH_ASSOC);
+
+    if (count(result) === 0) {
         http_response_code(404);
 
-        return "";
+        return '';
     }
 
-    $transacoes = $pdo
-        ->query("SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = $idCliente ORDER BY id DESC LIMIT 10;")
-        ->fetchAll(PDO::FETCH_ASSOC);
+    $saldo = [
+        'total' => $result[0]['total'];
+        'data_extrato' => $result[0]['data_extrato'];
+        'limite' => $result[0]['limite'];
+    ];
+
+    $transacoes = [];
+    foreach ($result as $transacao) {
+        $transacao[] = [
+            'valor' => $transacao['valor'],
+            'tipo' => $transacao['tipo'],
+            'descricao' => $transacao['descricao'],
+            'realizada_em' => $transacao['realizada_em'],
+        ];
+    }
 
     return json_encode([
         'saldo' => $saldo,
