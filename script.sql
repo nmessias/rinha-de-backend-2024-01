@@ -18,7 +18,7 @@ CREATE TYPE criar_transacao_result AS (
   limite integer
 );
 
-CREATE OR REPLACE FUNCTION criar_transacao(a_id_cliente INTEGER, valor INTEGER, descricao VARCHAR(10), tipo CHAR(1))
+CREATE FUNCTION criar_transacao(a_id_cliente INTEGER, valor INTEGER, descricao VARCHAR(10), tipo CHAR(1))
 RETURNS criar_transacao_result AS $$
 DECLARE 
   current_data RECORD;
@@ -51,13 +51,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-INSERT INTO transacoes (id_cliente, saldo, limite, valor, descricao, tipo, realizada_em)
-VALUES
-  (1, 0, 1000 * 100, 0, '', 'c', now()),
-  (2, 0, 800 * 100, 0, '', 'c', now()),
-  (3, 0, 10000 * 100, 0, '', 'c', now()),
-  (4, 0, 100000 * 100, 0, '', 'c', now()),
-  (5, 0, 5000 * 100, 0, '', 'c', now());
-
-CREATE EXTENSION pg_prewarm;
-SELECT pg_prewarm('transacoes');  
+DO $$
+BEGIN
+  INSERT INTO transacoes (id_cliente, saldo, limite, valor, descricao, tipo, realizada_em)
+  VALUES
+    (1, 0, 1000 * 100, 0, '', 'c', now()),
+    (2, 0, 800 * 100, 0, '', 'c', now()),
+    (3, 0, 10000 * 100, 0, '', 'c', now()),
+    (4, 0, 100000 * 100, 0, '', 'c', now()),
+    (5, 0, 5000 * 100, 0, '', 'c', now());
+END; $$
