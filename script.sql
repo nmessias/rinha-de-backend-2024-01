@@ -61,6 +61,3 @@ BEGIN
     (4, 0, 100000 * 100, 0, '', 'c', now()),
     (5, 0, 5000 * 100, 0, '', 'c', now());
 END; $$
-
-CREATE EXTENSION pg_prewarm;
-SELECT pg_prewarm('transacoes');

@@ -1,6 +1,6 @@
 <?php
 
-$pdo = new PDO('pgsql:host=127.0.0.1;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
+$pdo = new PDO('pgsql:host=127.0.0.1;port=6432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
 $saldoStmt = $pdo->prepare('SELECT saldo AS total, NOW() AS data_extrato, limite FROM transacoes where id_cliente = ? ORDER BY id DESC LIMIT 1;');
 $transacoesStmt = $pdo->prepare('SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = ? ORDER BY id DESC LIMIT 10;');
 $criarTransacaoStmt = $pdo->prepare('SELECT * FROM criar_transacao(?, ?, ?, ?);');
