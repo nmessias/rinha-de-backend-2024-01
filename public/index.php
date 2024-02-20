@@ -35,7 +35,7 @@ function getExtrato(int $idCliente, Pdo $pdo): string {
 
     $transacoes = [];
     foreach ($result as $transacao) {
-        $transacao[] = [
+        $transacoes[] = [
             'valor' => $transacao['valor'],
             'tipo' => $transacao['tipo'],
             'descricao' => $transacao['descricao'],
