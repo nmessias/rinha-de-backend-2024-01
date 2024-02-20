@@ -1,8 +1,11 @@
 <?php
 
 $pdo = new PDO('pgsql:host=127.0.0.1;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
+$saldoStmt = $pdo->prepare('SELECT saldo AS total, NOW() AS data_extrato, limite FROM transacoes where id_cliente = ? ORDER BY id DESC LIMIT 1;');
+$transacoesStmt = $pdo->prepare('SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = ? ORDER BY id DESC LIMIT 10;');
+$criarTransacaoStmt = $pdo->prepare('SELECT * FROM criar_transacao(?, ?, ?, ?);');
 
-$handler = static function () use ($pdo) {
+$handler = static function () use ($pdo, $saldoStmt, $transacoesStmt, $criarTransacaoStmt) {
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
 
@@ -10,38 +13,23 @@ $handler = static function () use ($pdo) {
     $idCliente = (int)$pathParts[2];
 
     echo match ($pathParts[3]) {
-        'transacoes' => createTransacao($idCliente, $pdo),
-        'extrato' => getExtrato($idCliente, $pdo),
+        'transacoes' => createTransacao($idCliente, $criarTransacaoStmt),
+        'extrato' => getExtrato($idCliente, $saldoStmt, $transacoesStmt),
         default => http_response_code(404) ? '' : '',
     };
 };
 
-function getExtrato(int $idCliente, Pdo $pdo): string {
-    $result = $pdo
-        ->query("SELECT saldo as total, now() as data_extrato, limite, valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = $idCliente ORDER BY id DESC LIMIT 10;")
-        ->fetchAll(PDO::FETCH_ASSOC);
-
-    if (count($result) === 0) {
+function getExtrato(int $idCliente, PDOStatement $saldoStmt, PDOStatement $transacoesStmt): string {
+    $saldoStmt->execute([$idCliente]);
+    $saldo = $saldoStmt->fetch(PDO::FETCH_ASSOC);
+    if (!$saldo) {
         http_response_code(404);
 
-        return '';
+        return "";
     }
 
-    $saldo = [
-        'total' => $result[0]['total'],
-        'data_extrato' => $result[0]['data_extrato'],
-        'limite' => $result[0]['limite'],
-    ];
-
-    $transacoes = [];
-    foreach ($result as $transacao) {
-        $transacoes[] = [
-            'valor' => $transacao['valor'],
-            'tipo' => $transacao['tipo'],
-            'descricao' => $transacao['descricao'],
-            'realizada_em' => $transacao['realizada_em'],
-        ];
-    }
+    $transacoesStmt->execute([$idCliente]);
+    $transacoes = $transacoesStmt->fetchAll(PDO::FETCH_ASSOC);
 
     return json_encode([
         'saldo' => $saldo,
@@ -49,7 +37,7 @@ function getExtrato(int $idCliente, Pdo $pdo): string {
     ]);
 }
 
-function createTransacao(int $idCliente, Pdo $pdo): string {
+function createTransacao(int $idCliente, PDOStatement $criarTransacaoStmt): string {
     $payload = json_decode(file_get_contents('php://input'), true);
 
     if (!isset($payload['valor']) || !isset($payload['tipo']) || !isset($payload['descricao'])) {
@@ -69,7 +57,8 @@ function createTransacao(int $idCliente, Pdo $pdo): string {
         return '';
     }
 
-    $response = $pdo->query("SELECT * FROM criar_transacao($idCliente, $valor, '$descricao', '$tipo')")->fetch(PDO::FETCH_ASSOC);
+    $criarTransacaoStmt->execute([$idCliente, $valor, $descricao, $tipo]);
+    $response = $criarTransacaoStmt->fetch(PDO::FETCH_ASSOC);
 
     $resultado = $response['resultado'];
     if ($resultado === -1) {
