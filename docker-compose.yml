@@ -18,8 +18,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.7"
-          memory: "150MB"    
+          cpus: "0.5"
+          memory: "180MB"    
 
   app1: &app
     build:
@@ -33,8 +33,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.3"
-          memory: "175MB"    
+          cpus: "0.4"
+          memory: "170MB"    
 
   app2:
     <<: *app
@@ -55,4 +55,4 @@ services:
       resources:
         limits:
           cpus: "0.2"
-          memory: "50MB"
+          memory: "30MB"

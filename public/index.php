@@ -17,8 +17,10 @@ $handler = static function () use ($pdo) {
 };
 
 function getExtrato(int $idCliente, Pdo $pdo): string {
-    $saldo = $pdo->query("SELECT saldo AS total, NOW() AS data_extrato, limite FROM clientes where id = $idCliente;")->fetch(PDO::FETCH_ASSOC);
-    if ($saldo === null) {
+    $saldo = $pdo
+        ->query("SELECT saldo AS total, NOW() AS data_extrato, limite FROM transacoes where id_cliente = $idCliente ORDER BY id DESC LIMIT 1;")
+        ->fetch(PDO::FETCH_ASSOC);
+    if (!$saldo) {
         http_response_code(404);
 
         return "";
