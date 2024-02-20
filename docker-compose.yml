@@ -20,24 +20,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: "180MB"    
-
-  pgbouncer:
-    image: pgbouncer/pgbouncer
-    network_mode: host
-    environment:
-      - DATABASES_HOST=localhost
-      - DATABASES_PORT=5432
-      - DATABASES_USER=admin
-      - DATABASES_PASSWORD=123
-      - DATABASES_DBNAME=rinha
-      - DATABASES_POOL_SIZE=30
-      - PGBOUNCER_MAX_CLIENT_CONN=30
-      - PGBOUNCER_RESERVE_POOL_SIZE=30
-      - PGBOUNCER_DEFAULT_POOL_SIZE=30
-    depends_on:
-      db:
-        condition: service_healthy  
+          memory: "180MB"
 
   app1: &app
     build:

@@ -51,19 +51,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-PREPARE extrato_saldo (int) AS
-  SELECT saldo AS total, NOW() AS data_extrato, limite FROM transacoes where id_cliente = $1 ORDER BY id DESC LIMIT 1;
+INSERT INTO transacoes (id_cliente, saldo, limite, valor, descricao, tipo, realizada_em)
+VALUES
+  (1, 0, 1000 * 100, 0, '', 'c', now()),
+  (2, 0, 800 * 100, 0, '', 'c', now()),
+  (3, 0, 10000 * 100, 0, '', 'c', now()),
+  (4, 0, 100000 * 100, 0, '', 'c', now()),
+  (5, 0, 5000 * 100, 0, '', 'c', now());
 
-PREPARE extrato_transacoes (int) AS
-  SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = $1 ORDER BY id DESC LIMIT 10;
-
-DO $$
-BEGIN
-  INSERT INTO transacoes (id_cliente, saldo, limite, valor, descricao, tipo, realizada_em)
-  VALUES
-    (1, 0, 1000 * 100, 0, '', 'c', now()),
-    (2, 0, 800 * 100, 0, '', 'c', now()),
-    (3, 0, 10000 * 100, 0, '', 'c', now()),
-    (4, 0, 100000 * 100, 0, '', 'c', now()),
-    (5, 0, 5000 * 100, 0, '', 'c', now());
-END; $$
+CREATE EXTENSION pg_prewarm;
+SELECT pg_prewarm('transacoes');  
