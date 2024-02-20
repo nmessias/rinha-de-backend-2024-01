@@ -46,10 +46,8 @@ services:
     volumes:
       - ./default.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      app1:
-        condition: service_healthy
-      app2:
-        condition: service_healthy
+      - app1
+      - app2
     deploy:
       resources:
         limits:
