@@ -21,10 +21,9 @@ services:
           memory: "180MB"
 
   app1: &app
-    build:
-      context: .
-      args:
-      - HTTP_PORT=3000
+    build: .
+    environment: 
+      - SERVER_NAME=:3000
     network_mode: host
     depends_on:
       db:
@@ -41,10 +40,9 @@ services:
 
   app2:
     <<: *app
-    build:
-      context: .
-      args:
-      - HTTP_PORT=3001
+    build: .
+    environment: 
+      - SERVER_NAME=:3001
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3001/clientes/1/extrato"]
       interval: 1s
