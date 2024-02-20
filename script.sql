@@ -10,7 +10,7 @@ CREATE UNLOGGED TABLE transacoes (
     id_cliente INTEGER NOT NULL
 );
 
-CREATE INDEX index_transacoes_id_cliente ON transacoes (id_cliente);
+CREATE INDEX idx_transacoes_id_cliente ON transacoes (id_cliente);
 
 CREATE TYPE criar_transacao_result AS (
   resultado integer,
