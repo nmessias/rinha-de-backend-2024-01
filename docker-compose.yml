@@ -40,11 +40,11 @@ services:
     environment: 
       - SERVER_NAME=:3001
 
-  nginx:
-    image: nginx:latest
+  haproxy:
+    image: haproxy:latest
     network_mode: host
     volumes:
-      - ./default.conf:/etc/nginx/nginx.conf:ro
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     depends_on:
       - app1
       - app2
@@ -53,3 +53,16 @@ services:
         limits:
           cpus: "0.2"
           memory: "30MB"
+  # nginx:
+  #   image: nginx:latest
+  #   network_mode: host
+  #   volumes:
+  #     - ./default.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - app1
+  #     - app2
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.2"
+  #         memory: "30MB"
