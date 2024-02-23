@@ -35,11 +35,14 @@ jobs:
       - name: Run Gatling
         run: cd tests/ && ./executar-teste-local.sh
 
+      - name: Rename test result directory
+        run: cd tests/load-test/user-files/results && mv ./* nmessias  
+
       - name: Upload Gatling results to GitHub
         uses: actions/upload-artifact@v4
         with: 
           name: github-pages
-          path: tests/load-test/user-files/results     
+          path: tests/load-test/user-files/results/nmessias
 
   deploy:
     needs: run-gatling

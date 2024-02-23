@@ -51,8 +51,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.2"
-          memory: "30MB"
+          cpus: "0.3"
+          memory: "60MB"
   # nginx:
   #   image: nginx:latest
   #   network_mode: host
