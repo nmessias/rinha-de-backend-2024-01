@@ -27,10 +27,10 @@ jobs:
       - name: Clone rinha-de-backend repository
         run: |
           git clone https://github.com/zanfranceschi/rinha-de-backend-2024-q1.git tests
-          sed -i 's/220/1020/g; s/110/830/g; s/to\(10\)/(300)/g; s/c\(300\)/c(60)/g' tests/load-test/user-files/simulations/rinhabackend/RinhaBackendCrebitosSimulation.scala
+          sed -i 's/220/8020/g; s/110/630/g; s/to\(10\)/(300)/g; s/c\(300\)/c(60)/g' tests/load-test/user-files/simulations/rinhabackend/RinhaBackendCrebitosSimulation.scala
 
       - name: Run app
-        run: cd tests/participantes/giovannibassi-rust && docker compose up --build -d
+        run: cd tests/participantes/nmessias && docker compose up --build -d
 
       - name: Run Gatling
         run: cd tests/ && ./executar-teste-local.sh
