@@ -19,7 +19,7 @@ jobs:
           java-version: '21'
       
       - name: Install Gatling
-        run: cd ~ && wget -O gatling.zip https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/3.10.3/gatling-charts-highcharts-bundle-3.10.3-bundle.zip && unzip gatling.zip
+        run: wget -O gatling.zip https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/3.10.3/gatling-charts-highcharts-bundle-3.10.3-bundle.zip && unzip gatling.zip -d ~/gatling
       
       - name: check
         run: ls ~/gatling
