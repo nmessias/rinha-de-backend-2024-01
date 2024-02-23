@@ -42,7 +42,7 @@ jobs:
           path: tests/load-test/user-files/results     
 
   deploy:
-    needs: build
+    needs: run-gatling
 
     permissions:
       pages: write
