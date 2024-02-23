@@ -19,10 +19,10 @@ jobs:
           java-version: '21'
       
       - name: Install Gatling
-        run: wget -O gatling.zip https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/3.10.3/gatling-charts-highcharts-bundle-3.10.3-bundle.zip && unzip gatling.zip -d ~/ && mv ~/gatling-charts-highcharts-bundle/3.10.3/gatling-charts-highcharts-bundle-3.10.3-bundle ~/gatling
+        run: wget -O gatling.zip https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/3.10.3/gatling-charts-highcharts-bundle-3.10.3-bundle.zip && unzip gatling.zip -d ~/
       
       - name: check
-        run: ls ~/gatling
+        run: ls ~/
 
       - name: Clone rinha-de-backend repository
         run: git clone https://github.com/zanfranceschi/rinha-de-backend-2024-q1.git tests
