@@ -27,7 +27,7 @@ jobs:
       - name: Clone rinha-de-backend repository
         run: |
           git clone https://github.com/zanfranceschi/rinha-de-backend-2024-q1.git tests
-          sed -i 's/220/8020/g; s/110/630/g; s/to\(10\)/(300)/g; s/c\(300\)/c(60)/g' tests/load-test/user-files/simulations/rinhabackend/RinhaBackendCrebitosSimulation.scala
+          sed -i 's/220/820/g; s/110/630/g; s/to\(10\)/(300)/g; s/c\(300\)/c(60)/g' tests/load-test/user-files/simulations/rinhabackend/RinhaBackendCrebitosSimulation.scala
 
       - name: Run app
         run: cd tests/participantes/nmessias && docker compose up --build -d
@@ -41,21 +41,20 @@ jobs:
           name: gatling-results
           path: tests/load-test/user-files/results     
 
-    deploy:
-      needs: build
+  deploy:
+    needs: build
 
-      permissions:
-        pages: write
-        id-token: write
+    permissions:
+      pages: write
+      id-token: write
 
-      environment:
-        name: github-pages
-        url: ${{ steps.deployment.outputs.page_url }}
-
-      runs-on: ubuntu-latest
-      steps:
-        - name: Deploy to GitHub Pages
-          id: deployment
-          uses: actions/deploy-pages@v4
-          artifact-name: gatling-results   
+    environment:
+      name: github-pages
+        
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        artifact-name: gatling-results   
 
