@@ -37,7 +37,7 @@ jobs:
           git clone https://github.com/zanfranceschi/rinha-de-backend-2024-q1.git tests
 
       - name: Run app
-        run: cd tests/participantes/cadu && docker compose up --build -d
+        run: cd tests/participantes/caravanacloud && docker compose up --build -d
 
       - name: Run Gatling
         run: cd tests/ && ./executar-teste-local.sh
