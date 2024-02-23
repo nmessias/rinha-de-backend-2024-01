@@ -15,7 +15,7 @@ jobs:
       
       - uses: actions/setup-java@v4
         with:
-          distribution: 'oracle'
+          distribution: 'temurin'
           java-version: '21'
       
       - name: Install zip
@@ -28,9 +28,9 @@ jobs:
         run: git clone https://github.com/zanfranceschi/rinha-de-backend-2024-q1.git tests
 
       - name: Run app
-        run: docker compose up --build -d
+        run: cd tests/participantes/nmessias && docker compose up --build -d
 
       - name: Run tests
-        run: cd tests/ && ./executar-teste-local.sh     
+        run: cd ~/tests/ && ./executar-teste-local.sh     
 
 
