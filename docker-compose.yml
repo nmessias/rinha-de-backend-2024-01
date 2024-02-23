@@ -48,3 +48,8 @@ services:
     depends_on:
       - app1
       - app2
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: "30MB"

@@ -35,7 +35,6 @@ jobs:
       - name: Clone rinha-de-backend repository
         run: |
           git clone https://github.com/zanfranceschi/rinha-de-backend-2024-q1.git tests
-          sed -i 's/220/1020/g; s/110/1020/g; s/to\(10\)/(460)/g; s/c\(10\)/c(460)/g' tests/load-test/user-files/simulations/rinhabackend/RinhaBackendCrebitosSimulation.scala
 
       - name: Run app
         run: docker compose up --build -d
