@@ -5,8 +5,16 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write      
+
 jobs:
   run-gatling:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     name: Run Gatling
     runs-on: ubuntu-20.04
     
@@ -43,19 +51,6 @@ jobs:
         with:
           path: 'tests/load-test/user-files/results/nmessias'  
 
-  deploy:
-    needs: run-gatling
-
-    permissions:
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-        
-    runs-on: ubuntu-latest
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
