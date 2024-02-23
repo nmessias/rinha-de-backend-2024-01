@@ -27,7 +27,7 @@ jobs:
       - name: Clone rinha-de-backend repository
         run: |
           git clone https://github.com/zanfranceschi/rinha-de-backend-2024-q1.git tests
-          sed -i 's/220/520/g; s/110/520/g; s/to\(10\)/(200)/g; s/c\(10\)/c(200)/g' tests/load-test/user-files/simulations/rinhabackend/RinhaBackendCrebitosSimulation.scala
+          sed -i 's/220/620/g; s/110/620/g; s/to\(10\)/(260)/g; s/c\(10\)/c(260)/g' tests/load-test/user-files/simulations/rinhabackend/RinhaBackendCrebitosSimulation.scala
 
       - name: Run app
         run: cd tests/participantes/nmessias && docker compose up --build -d
@@ -38,7 +38,7 @@ jobs:
       - name: Upload Gatling results to GitHub
         uses: actions/upload-artifact@v4
         with: 
-          name: gatling-results
+          name: github-pages
           path: tests/load-test/user-files/results     
 
   deploy:
@@ -49,7 +49,7 @@ jobs:
       id-token: write
 
     environment:
-      name: gatling-results  
+      name: github-pages
         
     runs-on: ubuntu-latest
     steps:
