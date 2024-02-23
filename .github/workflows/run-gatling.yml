@@ -38,7 +38,7 @@ jobs:
       - name: Rename test result directory
         run: cd tests/load-test/user-files/results && mv ./* nmessias  
 
-       - name: Upload artifact
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: 'tests/load-test/user-files/results/nmessias'  
