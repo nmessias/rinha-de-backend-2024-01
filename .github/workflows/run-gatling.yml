@@ -31,6 +31,6 @@ jobs:
         run: cd tests/participantes/nmessias && docker compose up --build -d
 
       - name: Run tests
-        run: cd ~/tests/ && ./executar-teste-local.sh     
+        run: cd ../../ && ./executar-teste-local.sh     
 
 
