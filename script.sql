@@ -1,4 +1,4 @@
-CREATE UUNLOGGED TABLE transacoes (
+CREATE UNLOGGED TABLE transacoes (
     id SERIAL PRIMARY KEY,
     saldo INTEGER NOT NULL,
     limite INTEGER NOT NULL,
