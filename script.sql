@@ -1,4 +1,3 @@
-
 CREATE UNLOGGED TABLE transacoes (
     id SERIAL PRIMARY KEY,
     saldo INTEGER NOT NULL,
@@ -72,11 +71,7 @@ BEGIN
         ),
         'ultimas_transacoes', COALESCE((
             SELECT json_agg(row_to_json(t)) FROM (
-                SELECT valor, tipo, descricao, realizada_em as realizada_em
-                FROM transacoes
-                WHERE id_cliente = a_id_cliente
-                ORDER BY id DESC
-                LIMIT 10
+                SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = a_id_cliente ORDER BY id DESC LIMIT 10
             ) t
         ), '[]')
     ) INTO result;
