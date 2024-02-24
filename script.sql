@@ -51,6 +51,40 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION get_extrato(a_id_cliente INTEGER)
+RETURNS json AS $$
+DECLARE
+    result json;
+    cliente_data RECORD;
+BEGIN
+    SELECT saldo, limite INTO cliente_data FROM transacoes WHERE id_cliente = a_id_cliente order by id desc limit 1;
+
+    IF cliente_data IS NULL THEN
+        SELECT NULL INTO result;
+        RETURN result;
+    END IF;
+
+    SELECT json_build_object(
+        'saldo', json_build_object(
+            'total', cliente_data.saldo,
+            'data_extrato', NOW(),
+            'limite', cliente_data.limite
+        ),
+        'ultimas_transacoes', COALESCE((
+            SELECT json_agg(row_to_json(t)) FROM (
+                SELECT valor, tipo, descricao, realizada_em as realizada_em
+                FROM transacoes
+                WHERE id_cliente = a_id_cliente
+                ORDER BY id DESC
+                LIMIT 10
+            ) t
+        ), '[]')
+    ) INTO result;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
 DO $$
 BEGIN
   INSERT INTO transacoes (id_cliente, saldo, limite, valor, descricao, tipo, realizada_em)

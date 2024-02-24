@@ -1,11 +1,10 @@
 <?php
 
 $pdo = new PDO('pgsql:host=127.0.0.1;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
-$saldoStmt = $pdo->prepare('SELECT saldo AS total, NOW() AS data_extrato, limite FROM transacoes where id_cliente = ? ORDER BY id DESC LIMIT 1;');
-$transacoesStmt = $pdo->prepare('SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = ? ORDER BY id DESC LIMIT 10;');
+$extratoStmt = $pdo->prepare('SELECT get_extrato(?);');
 $criarTransacaoStmt = $pdo->prepare('SELECT * FROM criar_transacao(?, ?, ?, ?);');
 
-$handler = static function () use ($saldoStmt, $transacoesStmt, $criarTransacaoStmt) {
+$handler = static function () use ($extratoStmt, $criarTransacaoStmt) {
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
 
@@ -14,27 +13,22 @@ $handler = static function () use ($saldoStmt, $transacoesStmt, $criarTransacaoS
 
     echo match ($pathParts[3]) {
         'transacoes' => createTransacao($idCliente, $criarTransacaoStmt),
-        'extrato' => getExtrato($idCliente, $saldoStmt, $transacoesStmt),
+        'extrato' => getExtrato($idCliente, $extratoStmt),
         default => http_response_code(404) ? '' : '',
     };
 };
 
-function getExtrato(int $idCliente, PDOStatement $saldoStmt, PDOStatement $transacoesStmt): string {
-    $saldoStmt->execute([$idCliente]);
-    $saldo = $saldoStmt->fetch(PDO::FETCH_ASSOC);
-    if (!$saldo) {
+function getExtrato(int $idCliente, PDOStatement $extratoStmt): string {
+    $extratoStmt->execute([$idCliente]);
+    $extrato = $extratoStmt->fetch(PDO::FETCH_ASSOC)['get_extrato'];
+
+    if ($extrato === null) {
         http_response_code(404);
 
         return "";
     }
 
-    $transacoesStmt->execute([$idCliente]);
-    $transacoes = $transacoesStmt->fetchAll(PDO::FETCH_ASSOC);
-
-    return json_encode([
-        'saldo' => $saldo,
-        'ultimas_transacoes' => $transacoes,
-    ]);
+    return $extrato;
 }
 
 function createTransacao(int $idCliente, PDOStatement $criarTransacaoStmt): string {
