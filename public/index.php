@@ -1,60 +1,83 @@
 <?php
 
-$pdo = new PDO('pgsql:host=127.0.0.1;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
-$extratoStmt = $pdo->prepare('SELECT get_extrato(?);');
-$transacaoStmt = $pdo->prepare('SELECT * FROM criar_transacao(?, ?, ?, ?);');
-const TIPOS = ['c', 'd'];
+$pdo = new PDO('pgsql:host=127.0.0.1;port=5432;dbname=rinha', 'admin', '123', [PDO::ATTR_PERSISTENT => true]);
 
-$handler = static function () use ($extratoStmt, $transacaoStmt) {
-    header('Content-Type: application/json');
+$handler = static function () use ($pdo) {
+    http_response_code(200);
+    header('Content-Type: application/json; charset=utf-8');
+
     $pathParts = explode('/', $_SERVER["REQUEST_URI"]);
     $idCliente = (int)$pathParts[2];
 
-    [$responseCode, $responseBody] = match ($pathParts[3]) {
-        'transacoes' => transacao($idCliente, $transacaoStmt),
-        'extrato' => extrato($idCliente, $extratoStmt),
-        default => [404, null],
+    echo match ($pathParts[3]) {
+        'transacoes' => createTransacao($idCliente, $pdo),
+        'extrato' => getExtrato($idCliente, $pdo),
+        default => http_response_code(404) ? '' : '',
     };
-
-    http_response_code($responseCode);
-    echo $responseBody;
 };
 
-function extrato(int $idCliente, PDOStatement $stmt): array {
-    $stmt->execute([$idCliente]);
-    $result = $stmt->fetch()['get_extrato'];
-    if ($result === null) {
-        return [404, null];
+function getExtrato(int $idCliente, Pdo $pdo): string {
+    $saldo = $pdo->query("SELECT saldo AS total, NOW() AS data_extrato, limite FROM clientes where id = $idCliente;")->fetch(PDO::FETCH_ASSOC);
+    if ($saldo === null) {
+        http_response_code(404);
+
+        return "";
     }
-    
-    return [200, $result];
+
+    $transacoes = $pdo
+        ->query("SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE id_cliente = $idCliente ORDER BY id DESC LIMIT 10;")
+        ->fetchAll(PDO::FETCH_ASSOC);
+
+    return json_encode([
+        'saldo' => $saldo,
+        'ultimas_transacoes' => $transacoes,
+    ]);
 }
 
-function transacao(int $idCliente, PDOStatement $stmt): array {
+function createTransacao(int $idCliente, Pdo $pdo): string {
     $payload = json_decode(file_get_contents('php://input'), true);
+
     if (!isset($payload['valor']) || !isset($payload['tipo']) || !isset($payload['descricao'])) {
-        return [422, null];
+        http_response_code(422);
+
+        return '';
     }
 
-    ['tipo' => $tipo, 'valor' => $valor, 'descricao' => $descricao] = $payload;
+    $tipo = $payload['tipo'];
+    $valor = $payload['valor'];
+    $descricao = $payload['descricao'];
+
     $lengthDescricao = strlen($descricao);
-    if (!is_int($valor) || $lengthDescricao < 1 || $lengthDescricao > 10 || !in_array($tipo, TIPOS)) {
-        return [422, null];
+    if (!is_int($valor) || $lengthDescricao < 1 || $lengthDescricao > 10 || !in_array($tipo, ['c', 'd'])) {
+        http_response_code(422);
+        
+        return '';
     }
 
-    $stmt->execute([$idCliente, $valor, $descricao, $tipo]);
-    ['code' => $code, 'saldo' => $saldo, 'limite' => $limite] = $stmt->fetch();
-    
-    if ($code === -1) {
-        return [404, null];
-    }    
-    if ($code === -2) {
-        return [422, null];
-    };
+    $response = $pdo->query("SELECT * FROM criar_transacao($idCliente, $valor, '$descricao', '$tipo')")->fetch(PDO::FETCH_ASSOC);
 
-    return [200, "{\"saldo\": $saldo, \"limite\": $limite}"];
+    $resultado = $response['resultado'];
+    if ($resultado === -1) {
+        http_response_code(404);
+
+        return '';
+    }
+        
+    if ($resultado === -2) {
+        http_response_code(422);
+
+        return '';
+    }
+
+    $saldo = $response['saldo'];
+    $limite = $response['limite'];
+
+    return "{\"saldo\": $saldo, \"limite\": $limite}";
 }
 
 while(true) {
     \frankenphp_handle_request($handler);
+
+    // Call the garbage collector to reduce the chances of it being triggered in the middle of a page generation
+    gc_collect_cycles();
 }
