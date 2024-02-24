@@ -13,7 +13,7 @@ CREATE UNLOGGED TABLE transacoes (
 CREATE INDEX idx_transacoes_id_cliente ON transacoes (id_cliente);
 
 CREATE TYPE criar_transacao_result AS (
-  resultado integer,
+  code integer,
   saldo integer,
   limite integer
 );
