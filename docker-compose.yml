@@ -39,6 +39,9 @@ services:
     container_name: warmup
     network_mode: host 
     image: fedora:39
+    depends_on:
+      db:
+        condition: service_healthy
     command: |
       /bin/bash -c "echo 'warmuping'; sleep 5;
         for i in $(seq 1 50);
