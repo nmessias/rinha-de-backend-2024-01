@@ -21,7 +21,7 @@ services:
           memory: "180MB"
 
   app1: &app
-    build: .
+    image: nicomcode/rinha-2024-1-frankenphp:latest
     environment: 
       - SERVER_NAME=:3000
     network_mode: host
@@ -36,7 +36,6 @@ services:
 
   app2:
     <<: *app
-    build: .
     environment: 
       - SERVER_NAME=:3001
 
