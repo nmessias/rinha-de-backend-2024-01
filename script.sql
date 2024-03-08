@@ -25,12 +25,12 @@ DECLARE
   copy_valor INTEGER;
 BEGIN
   PERFORM pg_advisory_xact_lock(a_id_cliente);
-	SELECT * INTO current_data FROM transacoes WHERE id_cliente = a_id_cliente order by id desc limit 1;
+  SELECT * INTO current_data FROM transacoes WHERE id_cliente = a_id_cliente order by id desc limit 1;
 	
-	IF current_data IS NULL THEN
-		SELECT -1, -1, -1 INTO result;
+  IF current_data IS NULL THEN
+    SELECT -1, -1, -1 INTO result;
     RETURN result;
-	END IF;
+  END IF;
 
   IF tipo = 'd' THEN
     copy_valor := valor * -1;
